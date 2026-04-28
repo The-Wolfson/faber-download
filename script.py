@@ -1,3 +1,5 @@
+import os.path
+
 import requests
 import re
 import io
@@ -104,8 +106,8 @@ if __name__ == '__main__':
     logging.info(f"Score: {name} (id={score_id})")
 
     if perusal:
-        output = args.output + f"{name}-perusal.pdf"
+        output = os.path.join(args.output, f"{name}-perusal.pdf")
         run_perusal(score_id, output)
     if preview:
-        output = args.output + f"{name}-preview.pdf"
+        output = os.path.join(args.output, f"{name}-preview.pdf")
         run_preview(score_id, output)
