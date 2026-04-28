@@ -3,8 +3,10 @@ import re
 import io
 import sys
 from PIL import Image, ImageFile
+import argparse
 
-def download_image(url: str, page: int) -> ImageFile.ImageFile | None: #return error or image
+def download_image(url: str, page: int) -> ImageFile.ImageFile | None:
+
     url = re.sub(r"(?<=pagenumber=)\d*", str(page), url, count=1)
 
     request = requests.get(url, stream=True)
@@ -21,9 +23,13 @@ def get_id(url: str) -> str:
     else:
         raise Exception("No ID found in the URL")
 
-def get_name(url: str) -> str:
+# input https://www.fabermusic.com/shop/six-from-six-the-musical-d40696/sample or https://www.fabermusic.com/shop/six-from-six-the-musical-d40696
+def get_name(url: str) -> str | None:
     matches = re.findall(r"\w+(?=-)", url)
-    return " ".join(matches).title()
+    if len(matches) > 0:
+        return " ".join(matches).title()
+    else:
+        return None
 
 def get_preview_image_url(eid: str) -> str:
     base_url = f"https://www.epartnershub.com/EngravingServices/ViewHandler.ashx?op=preview&eid={eid}"
@@ -46,44 +52,46 @@ def save_pdf_from_images(images: list[ImageFile.ImageFile], output: str):
         output, "PDF", resolution=100.0, save_all=True, append_images=images[1:]
     )
 
-if __name__ == '__main__':
-    URL = sys.argv[1]
-    PDF_PREVIEW_OUTPUT = f"{get_name(URL)}-preview.pdf"
-    PDF_PERUSAL_OUTPUT = f"{get_name(URL)}-perusal.pdf"
-    SCORE_ID = get_id(URL)
-    IMAGE_URL = get_preview_image_url(SCORE_ID)
-    PDF_URL = get_perusal_pdf_url(SCORE_ID)
-    IMAGES: list[ImageFile.ImageFile] = []
-    while True:
-        PAGE_NUMBER = len(IMAGES) + 1
-        RESULT = download_image(IMAGE_URL, PAGE_NUMBER)
-        if RESULT is None:
-            break
-        IMAGES.append(RESULT)
-    save_pdf_from_url(PDF_URL, output=PDF_PERUSAL_OUTPUT)
-    save_pdf_from_images(IMAGES, output=PDF_PREVIEW_OUTPUT)
+def run_preview(id: str, output: str):
+    image_url = get_preview_image_url(id)
 
-# https://www.fabermusic.com/shop/d40696 //product listing
-# https://www.fabermusic.com/shop/d40696/sample // product sample page
-# https://www.epartnershub.com/engravingservices/view.aspx?q=1D6C09323594E33ECBDBCA6F016A67B8CE3C5D7ED90BC38F30772354EFF47AD4 // sample iframe
-# https://w56378sxd7.execute-api.eu-west-2.amazonaws.com/Prod/faber-preview?guid=4634c725-d838-4793-8ca3-b53cc9928c91&fileformat=png&previewtype=singlepage&pagenumber=1 //preview image of page
-#
-# https://www.fabermusic.com/shop/d45182 // product listing
-# https://www.epartnershub.com/EngravingServices/ViewHandler.ashx?op=preview&eid=45182 // redirects to preview image
-#
-# https://www.epartnershub.com/EngravingServices/ViewHandler.ashx?op=perusal&page=0&eid=45182 // redirects to full perusal pdf
-#
-# https://w56378sxd7.execute-api.eu-west-2.amazonaws.com/Prod/faber-preview?guid=6b06f6b1-fd14-4263-98a6-65c59819040e&fileformat=png&previewtype=perusal&pagenumber=1 // watermarked png
-#
-# https://w56378sxd7.execute-api.eu-west-2.amazonaws.com/Prod/faber-preview?guid=bfaaff71-6e02-4467-bc6e-94fa138969d8&fileformat=png&previewtype=perusal // watermarked pdf
-# https://w56378sxd7.execute-api.eu-west-2.amazonaws.com/Prod/faber-preview?guid=6b06f6b1-fd14-4263-98a6-65c59819040e&fileformat=png&previewtype=perusal&pagenumber=0 // watermarked pdf
-#
-# https://www.epartnershub.com/api/download.aspx?hash=028f38bdd5b65b7c99275b08a2c13e00&epartner=fabermusicstore&sale=3605678 // full d33663 pdf
-# https://www.epartnershub.com/api/download.aspx?hash=9df81ee453e3ce3cbfcc3cc56f97f3ea&epartner=fabermusicstore&sale=3605679 // full d44195 pdf
-#
-# https://www.fabermusic.com/shop/d33663
-# https://www.fabermusic.com/shop/d33663/sample
-# https://www.epartnershub.com/engravingservices/view.aspx?q=A9AEDE6CCAAE54A5DFD5723B3A87E890EA90AC9447269D26AB642F016951B3C0
-# https://www.epartnershub.com/EngravingServices/ViewHandler.ashx?op=perusal&page=0&eid=33663
-# https://w56378sxd7.execute-api.eu-west-2.amazonaws.com/Prod/faber-preview?guid=8dcfc705-650e-4709-b0fb-e9d29ec9c384&fileformat=png&previewtype=perusal&pagenumber=0
-# https://www.epartnershub.com/api/download.aspx?hash=028f38bdd5b65b7c99275b08a2c13e00&epartner=fabermusicstore&sale=3605678
+    images: list[ImageFile.ImageFile] = []
+    while True:
+        page_number = len(images) + 1
+        result = download_image(image_url, page_number)
+        if result is None:
+            break
+        images.append(result)
+    save_pdf_from_images(images, output=output)
+
+
+def run_perusal(id: str, output: str):
+    pdf_url = get_perusal_pdf_url(id)
+    save_pdf_from_url(pdf_url, output=output)
+
+
+# input either https://www.fabermusic.com/shop/d40696 or https://www.fabermusic.com/shop/six-from-six-the-musical-d40696
+# or https://www.fabermusic.com/shop/d40696/sample or https://www.fabermusic.com/shop/six-from-six-the-musical-d40696/sample
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Download scores from Faber Music")
+    parser.add_argument("url", help="The URL of the Faber Music product page", type=str)
+    parser.add_argument("-o", "--output", type=str, default="./")
+    parser.add_argument("--preview", action="store_true", help="Download preview PDF")
+    parser.add_argument("--perusal", action="store_true", help="Download perusal PDF")
+
+    args = parser.parse_args()
+
+    preview: bool = args.preview
+    perusal: bool = args.perusal
+    if not preview and not perusal:
+        preview = perusal = True
+
+    score_id: str = get_id(args.url)
+    name: str = get_name(args.url) or score_id
+
+    if perusal:
+        output = args.output + f"{name}-perusal.pdf"
+        run_perusal(score_id, output)
+    if preview:
+        output = args.output + f"{name}-preview.pdf"
+        run_preview(score_id, output)
