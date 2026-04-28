@@ -5,15 +5,15 @@
 This project provides a way for users to download full pdf sheet music from [Faber Music](https://www.fabermusic.com/shop)'s website.
 
 ## Usage
-`python3 script.py <url> [--output OUTPUT] [--preview] [--perusal]`
+`faber-downloader <url> [--output OUTPUT] [--preview] [--perusal]`
 #### Download Preview and Perusal PDFs
-`python3 script.py https://www.fabermusic.com/shop/over-the-rainbow-d45182`
+`faber-downloader https://www.fabermusic.com/shop/over-the-rainbow-d45182`
 #### Download Preview PDF only
-`python3 script.py https://www.fabermusic.com/shop/over-the-rainbow-d45182 --preview`
+`faber-downloader https://www.fabermusic.com/shop/over-the-rainbow-d45182 --preview`
 #### Download Perusal PDF only
-`python3 script.py https://www.fabermusic.com/shop/over-the-rainbow-d45182 --perusal`
+`faber-downloader https://www.fabermusic.com/shop/over-the-rainbow-d45182 --perusal`
 #### Custom output directory
-`python3 script.py https://www.fabermusic.com/shop/over-the-rainbow-d45182 -o /path/to/output/`
+`faber-downloader https://www.fabermusic.com/shop/over-the-rainbow-d45182 -o /path/to/output/`
 
 ---
 
