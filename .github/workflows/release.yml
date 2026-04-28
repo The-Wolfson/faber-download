@@ -1,0 +1,32 @@
+name: Build and Release
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+      - run: |
+          pip install -r requirements.txt pyinstaller
+          pyinstaller --onefile script.py
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app-${{ matrix.os }}
+          path: dist/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with: {merge-multiple: true}
+      - uses: softprops/action-gh-release@v3
+        with: {files: "app*"}
